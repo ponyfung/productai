@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI 秒速盤點機 v2.1</title>
+    <title>AI 秒速盤點機 v2.2</title>
     <script type="importmap">
       {
         "imports": {
-          "@google/generative-ai": "https://esm.run/@google/generative-ai@0.14.1"
+          "@google/generative-ai": "https://esm.run/@google/generative-ai"
         }
       }
     </script>
@@ -21,7 +21,6 @@
         }
         .container { max-width: 600px; margin: 0 auto; }
         
-        /* API Key 區 */
         .api-box {
             background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
@@ -31,10 +30,7 @@
             box-sizing: border-box; margin-top: 5px; font-size: 14px;
         }
 
-        /* 大按鈕區 */
-        .action-area {
-            display: grid; gap: 15px;
-        }
+        .action-area { display: grid; gap: 15px; }
         .big-btn {
             background: white; border: none; border-radius: 20px; padding: 30px 20px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1); cursor: pointer;
@@ -45,7 +41,6 @@
         .big-btn span { font-size: 18px; font-weight: bold; color: #333; }
         .big-btn small { font-size: 12px; color: #888; margin-top: 5px; }
 
-        /* 全螢幕 Loading 畫面 */
         #loading-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 999;
             display: none; flex-direction: column; align-items: center; justify-content: center;
@@ -57,18 +52,13 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
         
-        /* 狀態文字 */
-        #status-text { font-size: 18px; font-weight: bold; }
-        #sub-status { font-size: 14px; color: #ccc; margin-top: 10px; }
-
-        /* 結果區 */
         #result-preview { margin-top: 20px; text-align: left; background: white; padding: 15px; border-radius: 12px; display: none; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2 style="margin-top:0;">⚡ AI 秒速盤點</h2>
+        <h2 style="margin-top:0;">⚡ AI 秒速盤點 v2.2</h2>
         
         <div class="api-box">
             <label style="font-size:12px; font-weight:bold; color:#666;">Google Gemini API Key:</label>
@@ -80,7 +70,7 @@
             <button class="big-btn" onclick="triggerCamera()">
                 <i class="ri-camera-lens-fill"></i>
                 <span>📸 即影 -> 即出 Excel</span>
-                <small>影完自動分析及下載</small>
+                <small>自動分析及下載</small>
             </button>
 
             <button class="big-btn" onclick="document.getElementById('file-upload').click()">
@@ -103,7 +93,7 @@
     <div id="loading-overlay">
         <div class="spinner"></div>
         <div id="status-text">正在分析圖片...</div>
-        <div id="sub-status">AI 正在辨識品牌與數量</div>
+        <div id="sub-status">請稍候...</div>
     </div>
 
     <script type="module">
@@ -154,19 +144,20 @@
                 const apiKey = document.getElementById('api-key').value;
                 const genAI = new GoogleGenerativeAI(apiKey);
                 
-                // --- 修正點：使用具體版本號 'gemini-1.5-flash-001' 避免 404 ---
-                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
+                // === 修正重點：改回標準名稱 "gemini-1.5-flash" ===
+                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
                 status.innerText = "🤖 AI 思考中...";
-                sub.innerText = "正在分辨產品牌子與型號...";
+                sub.innerText = "正在辨識品牌與數量...";
 
                 const prompt = `
-                    請分析圖片中的商品。請非常精準地辨識「品牌 (Brand)」、「產品全名 (Full Name)」、「具體型號/口味/容量 (Model/Flavor)」以及「數量 (Quantity)」。
+                    你是一個倉存系統。請分析圖片中的商品。
+                    請非常精準地辨識「品牌 (Brand)」、「產品全名 (Full Name)」、「具體型號/口味/容量 (Model/Flavor)」以及「數量 (Quantity)」。
                     
                     輸出格式必須是純 JSON Array，不要有 Markdown，格式如下：
                     [
-                      {"brand": "維他", "name": "檸檬茶", "spec": "250ml 紙包裝", "qty": 3},
-                      {"brand": "可口可樂", "name": "Zero", "spec": "330ml 罐裝", "qty": 1}
+                      {"brand": "維他", "name": "檸檬茶", "spec": "250ml", "qty": 3},
+                      {"brand": "Coca-Cola", "name": "Zero", "spec": "330ml", "qty": 1}
                     ]
                 `;
 
@@ -176,6 +167,7 @@
                 ]);
                 
                 const responseText = result.response.text();
+                // 清理可能出現的 json 標記
                 const jsonText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
                 const data = JSON.parse(jsonText);
 
@@ -185,12 +177,16 @@
                 overlay.style.display = 'none';
                 document.getElementById('result-preview').style.display = 'block';
                 document.getElementById('data-dump').innerText = JSON.stringify(data, null, 2);
-                alert("搞掂！Excel 檔案已下載。");
+                alert("成功！Excel 檔案已下載。");
 
             } catch (error) {
                 console.error(error);
-                // 顯示更詳細的錯誤
-                alert("錯誤：" + error.message + "\n(請確保你有開 VPN 如果在香港)");
+                // 錯誤處理提示
+                let msg = error.message;
+                if (msg.includes("404")) msg = "找不到模型，請確保 SDK 版本正確。";
+                if (msg.includes("400")) msg = "位置錯誤或 API Key 問題 (請檢查 VPN)。";
+                
+                alert("錯誤：" + msg + "\n\n⚠️ 如果你在香港，請務必開啟 VPN (連去日本/台灣/美國)。");
                 overlay.style.display = 'none';
             }
             
