@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI 秒速盤點機 v2.2</title>
+    <title>AI 秒速盤點機 v2.3 (Debug)</title>
     <script type="importmap">
       {
         "imports": {
@@ -53,12 +53,19 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         
         #result-preview { margin-top: 20px; text-align: left; background: white; padding: 15px; border-radius: 12px; display: none; }
+        
+        /* 錯誤顯示區 */
+        #error-console {
+            background: #ffebeb; border: 1px solid red; color: red; 
+            padding: 10px; margin-top: 20px; border-radius: 8px; 
+            text-align: left; font-size: 12px; word-break: break-all; display: none;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2 style="margin-top:0;">⚡ AI 秒速盤點 v2.2</h2>
+        <h2 style="margin-top:0;">⚡ AI 秒速盤點 v2.3</h2>
         
         <div class="api-box">
             <label style="font-size:12px; font-weight:bold; color:#666;">Google Gemini API Key:</label>
@@ -82,6 +89,8 @@
 
         <input type="file" id="file-camera" accept="image/*" capture="environment" style="display:none" onchange="handleProcess(this)">
         <input type="file" id="file-upload" accept="image/*" style="display:none" onchange="handleProcess(this)">
+
+        <div id="error-console"></div>
 
         <div id="result-preview">
             <h3>✅ 已完成！</h3>
@@ -135,6 +144,9 @@
             if (!file) return;
 
             const overlay = document.getElementById('loading-overlay');
+            const errorConsole = document.getElementById('error-console');
+            errorConsole.style.display = 'none'; // 重置錯誤區
+            
             const status = document.getElementById('status-text');
             const sub = document.getElementById('sub-status');
             overlay.style.display = 'flex';
@@ -144,15 +156,14 @@
                 const apiKey = document.getElementById('api-key').value;
                 const genAI = new GoogleGenerativeAI(apiKey);
                 
-                // === 修正重點：改回標準名稱 "gemini-1.5-flash" ===
+                // 使用最標準的 gemini-1.5-flash
                 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
                 status.innerText = "🤖 AI 思考中...";
                 sub.innerText = "正在辨識品牌與數量...";
 
                 const prompt = `
-                    你是一個倉存系統。請分析圖片中的商品。
-                    請非常精準地辨識「品牌 (Brand)」、「產品全名 (Full Name)」、「具體型號/口味/容量 (Model/Flavor)」以及「數量 (Quantity)」。
+                    請分析圖片中的商品。請非常精準地辨識「品牌 (Brand)」、「產品全名 (Full Name)」、「具體型號/口味/容量 (Model/Flavor)」以及「數量 (Quantity)」。
                     
                     輸出格式必須是純 JSON Array，不要有 Markdown，格式如下：
                     [
@@ -181,13 +192,20 @@
 
             } catch (error) {
                 console.error(error);
-                // 錯誤處理提示
-                let msg = error.message;
-                if (msg.includes("404")) msg = "找不到模型，請確保 SDK 版本正確。";
-                if (msg.includes("400")) msg = "位置錯誤或 API Key 問題 (請檢查 VPN)。";
-                
-                alert("錯誤：" + msg + "\n\n⚠️ 如果你在香港，請務必開啟 VPN (連去日本/台灣/美國)。");
                 overlay.style.display = 'none';
+                
+                // === 將真實錯誤顯示在畫面上 ===
+                let errorMsg = error.toString();
+                errorConsole.style.display = 'block';
+                errorConsole.innerText = "⚠️ 發生錯誤：\n" + errorMsg;
+
+                if (errorMsg.includes("400") || errorMsg.includes("User location")) {
+                    alert("【地點錯誤】\nGoogle 發現你在香港。\n請開啟 VPN (日本/台灣) 再試一次！");
+                } else if (errorMsg.includes("404") || errorMsg.includes("Not Found")) {
+                    alert("【模型錯誤】\n找不到 AI 模型，請截圖給開發者檢查。");
+                } else {
+                    alert("【未知錯誤】\n請看下方紅色框框的詳細訊息。");
+                }
             }
             
             input.value = '';
