@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI 智能盤點機</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/generative-ai": "https://esm.run/@google/generative-ai"
+        }
+      }
+    </script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #007aff;
+            --bg: #f2f2f7;
+            --card-bg: #ffffff;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg); margin: 0; padding: 20px;
+            color: #1c1c1e; padding-bottom: 100px;
+        }
+        .container { max-width: 600px; margin: 0 auto; }
+        
+        /* 卡片樣式 */
+        .card {
+            background: var(--card-bg); border-radius: 20px; padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 15px;
+        }
+        
+        h1 { margin: 0 0 10px 0; font-size: 24px; text-align: center; }
+        p { color: #666; font-size: 14px; text-align: center; margin-top: 0; }
+
+        /* API Key 輸入框 */
+        .api-input-box {
+            background: #eef2ff; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #dbeafe;
+        }
+        .api-input {
+            width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 14px;
+        }
+
+        /* 圖片預覽 */
+        .preview-box {
+            width: 100%; min-height: 200px; background: #f9f9f9; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
+            border: 2px dashed #ddd; margin-bottom: 15px; position: relative;
+        }
+        #preview-img { width: 100%; display: none; }
+        .placeholder-text { color: #aaa; pointer-events: none; }
+
+        /* 按鈕 */
+        .btn {
+            width: 100%; padding: 14px; border: none; border-radius: 12px;
+            font-size: 16px; font-weight: bold; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; gap: 8px; margin-bottom: 10px;
+        }
+        .btn-blue { background: var(--primary); color: white; }
+        .btn-green { background: #34c759; color: white; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* 表格樣式 */
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px; }
+        th { background: #f2f2f7; text-align: left; padding: 10px; border-radius: 8px 8px 0 0; }
+        td { padding: 10px; border-bottom: 1px solid #eee; }
+        
+        .loading-overlay {
+            position: fixed; inset: 0; background: rgba(255,255,255,0.9); z-index: 99;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .spinner {
+            width: 40px; height: 40px; border: 4px solid #ddd; border-top-color: var(--primary);
+            border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>📸 AI 智能盤點機</h1>
+        <p>拍照 -> AI 識別 -> 匯出 Excel</p>
+
+        <div class="api-input-box">
+            <label style="font-size:12px; font-weight:bold; color:#007aff;">第一步：輸入 API Key</label>
+            <input type="password" id="api-key" class="api-input" placeholder="貼上 Google Gemini API Key">
+            <div style="text-align:right; margin-top:5px;">
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size:12px; color:#007aff;">👉 按此免費獲取 Key</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="preview-box" onclick="document.getElementById('file-input').click()">
+                <img id="preview-img">
+                <div class="placeholder-text" id="placeholder">
+                    <i class="ri-camera-fill" style="font-size:40px; display:block; margin:0 auto;"></i>
+                    點擊拍照或上傳
+                </div>
+            </div>
+            <input type="file" id="file-input" accept="image/*" style="display:none" onchange="handleFile(event)">
+
+            <button class="btn btn-blue" id="analyze-btn" onclick="analyzeImage()" disabled>
+                <i class="ri-sparkling-fill"></i> 開始 AI 分析
+            </button>
+        </div>
+
+        <div class="card" id="result-card" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3>📦 盤點結果</h3>
+                <span id="item-count" style="background:#eee; padding:2px 8px; border-radius:10px; font-size:12px;">0 項</span>
+            </div>
+            
+            <div class="table-container">
+                <table id="result-table">
+                    <thead>
+                        <tr>
+                            <th>產品名稱</th>
+                            <th>數量</th>
+                            <th>特徵/型號</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <button class="btn btn-green" onclick="downloadCSV()" style="margin-top:20px;">
+                <i class="ri-file-excel-2-fill"></i> 匯出 Excel (CSV)
+            </button>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loader">
+        <div class="spinner"></div>
+        <p>AI 正在數緊貨... 請稍候</p>
+    </div>
+
+    <script type="module">
+        import { GoogleGenerativeAI } from "@google/generative-ai";
+
+        let currentBase64 = null;
+        let aiData = [];
+
+        // 1. 處理圖片顯示
+        window.handleFile = function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentBase64 = e.target.result.split(',')[1]; // 拿掉 data:image... 前綴
+                    const img = document.getElementById('preview-img');
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                    document.getElementById('placeholder').style.display = 'none';
+                    document.getElementById('analyze-btn').disabled = false; // 啟用按鈕
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // 2. 呼叫 AI 分析
+        window.analyzeImage = async function() {
+            const key = document.getElementById('api-key').value;
+            if(!key) { alert("請先輸入 API Key！"); return; }
+
+            document.getElementById('loader').style.display = 'flex';
+
+            try {
+                const genAI = new GoogleGenerativeAI(key);
+                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+                // 這是給 AI 的指令 (Prompt)
+                const prompt = `
+                    你是一個倉存管理員。請分析這張圖片，找出所有產品。
+                    請分辨產品的「品牌」、「型號/口味/特徵」以及「數量」。
+                    如果有多個相同的產品，請合併計算數量。
+                    
+                    請直接回傳純 JSON 格式 (Array)，不要 Markdown，格式如下：
+                    [
+                        {"name": "產品全名", "brand": "品牌", "model": "型號或特徵", "qty": 數字}
+                    ]
+                `;
+
+                const imagePart = {
+                    inlineData: { data: currentBase64, mimeType: "image/jpeg" }
+                };
