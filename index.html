@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI 秒速盤點機 v2</title>
+    <title>AI 秒速盤點機 v2.1</title>
     <script type="importmap">
       {
         "imports": {
-          "@google/generative-ai": "https://esm.run/@google/generative-ai"
+          "@google/generative-ai": "https://esm.run/@google/generative-ai@0.14.1"
         }
       }
     </script>
@@ -109,7 +109,6 @@
     <script type="module">
         import { GoogleGenerativeAI } from "@google/generative-ai";
 
-        // --- 1. 自動儲存/讀取 API Key ---
         window.saveKey = function() {
             const key = document.getElementById('api-key').value;
             localStorage.setItem('gemini_key', key);
@@ -130,38 +129,33 @@
             }
         }
 
-        // 初始化時讀取 Key
         const savedKey = localStorage.getItem('gemini_key');
         if(savedKey) {
             document.getElementById('api-key').value = savedKey;
             checkKey();
         }
 
-        // --- 2. 觸發相機 ---
         window.triggerCamera = function() {
             if(!checkKey()) { alert("請先輸入 API Key！"); return; }
             document.getElementById('file-camera').click();
         }
 
-        // --- 3. 核心處理流程 (自動化) ---
         window.handleProcess = async function(input) {
             const file = input.files[0];
             if (!file) return;
 
-            // 顯示 Loading
             const overlay = document.getElementById('loading-overlay');
             const status = document.getElementById('status-text');
             const sub = document.getElementById('sub-status');
             overlay.style.display = 'flex';
             
             try {
-                // A. 讀取圖片
                 const base64Data = await readFileAsBase64(file);
-
-                // B. 呼叫 AI
                 const apiKey = document.getElementById('api-key').value;
                 const genAI = new GoogleGenerativeAI(apiKey);
-                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                
+                // --- 修正點：使用具體版本號 'gemini-1.5-flash-001' 避免 404 ---
+                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
 
                 status.innerText = "🤖 AI 思考中...";
                 sub.innerText = "正在分辨產品牌子與型號...";
@@ -185,11 +179,9 @@
                 const jsonText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
                 const data = JSON.parse(jsonText);
 
-                // C. 生成 Excel (CSV)
                 status.innerText = "📄 正在生成 Excel...";
                 downloadCSV(data);
 
-                // D. 顯示結果
                 overlay.style.display = 'none';
                 document.getElementById('result-preview').style.display = 'block';
                 document.getElementById('data-dump').innerText = JSON.stringify(data, null, 2);
@@ -197,15 +189,14 @@
 
             } catch (error) {
                 console.error(error);
-                alert("錯誤：" + error.message);
+                // 顯示更詳細的錯誤
+                alert("錯誤：" + error.message + "\n(請確保你有開 VPN 如果在香港)");
                 overlay.style.display = 'none';
             }
             
-            // 重置 input 以便下次再影
             input.value = '';
         };
 
-        // 輔助：讀取檔案
         function readFileAsBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -215,9 +206,8 @@
             });
         }
 
-        // 輔助：下載 CSV
         function downloadCSV(data) {
-            let csv = "\uFEFF品牌,產品名稱,規格/型號,數量\n"; // 標題
+            let csv = "\uFEFF品牌,產品名稱,規格/型號,數量\n";
             data.forEach(item => {
                 csv += `"${item.brand}","${item.name}","${item.spec}",${item.qty}\n`;
             });
