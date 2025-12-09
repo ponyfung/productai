@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 物件辨識器</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #111;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        h1 {
+            color: white;
+            position: absolute;
+            top: 20px;
+            z-index: 10;
+            font-size: 18px;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 10px;
+            border-radius: 8px;
+        }
+        #cam-container {
+            position: relative;
+            width: 100%;
+            max-width: 640px;
+            height: 480px;
+        }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        #loading {
+            color: #00ffcc;
+            font-size: 20px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .footer {
+            position: absolute;
+            bottom: 20px;
+            color: #888;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>👁️ Edge AI 物件辨識</h1>
+    
+    <div id="loading">
+        正在載入 AI 模型...<br>
+        <span style="font-size:12px; color:#aaa;">(初次載入需時約 10-20 秒)</span>
+    </div>
+
+    <div id="cam-container" style="display:none;">
+        <video id="webcam" autoplay playsinline muted></video>
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <div class="footer">Powered by TensorFlow.js</div>
+
+    <script>
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('cam-container');
+        const loading = document.getElementById('loading');
+        
+        let model = undefined;
+
+        // 1. 載入模型
+        async function loadModel() {
+            // 使用 coco-ssd 預訓練模型 (可以辨識 80 種常見物件：人、貓、狗、杯、車...)
+            model = await cocoSsd.load();
+            console.log("Model loaded!");
+            startCamera();
+        }
+
+        // 2. 開啟相機
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }, // 優先使用後置鏡頭
+                    audio: false
+                });
+                video.srcObject = stream;
+                
+                // 等待影片開始播放
+                video.onloadeddata = () => {
+                    loading.style.display = 'none';
+                    container.style.display = 'block';
+                    // 設定 Canvas 大小與 Video 一致
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    // 開始預測
+                    predictLoop();
+                };
+            } catch (error) {
+                alert("無法存取相機，請確保已授權。");
+                console.error(error);
+            }
+        }
+
+        // 3. AI 預測循環
+        async function predictLoop() {
+            if (!model) return;
+
+            // 讓 AI 分析目前的 video 畫面
+            const predictions = await model.detect(video);
+            
+            // 清空畫布，準備畫新的框
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 畫出每一個預測結果
+            predictions.forEach(prediction => {
+                // 畫框框
+                ctx.beginPath();
+                ctx.rect(...prediction.bbox);
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#00ffcc'; // 螢光綠色
+                ctx.fillStyle = '#00ffcc';
+                ctx.stroke();
+                
+                // 寫文字 (物件名稱 + 準確度)
+                ctx.font = '16px Arial';
+                ctx.fillText(
+                    `${prediction.class} (${Math.round(prediction.score * 100)}%)`,
+                    prediction.bbox[0],
+                    prediction.bbox[1] > 10 ? prediction.bbox[1] - 5 : 10
+                );
+            });
+
+            // 不斷重複下一幀
+            requestAnimationFrame(predictLoop);
+        }
+
+        // 啟動程式
+        loadModel();
+    </script>
+</body>
+</html>
