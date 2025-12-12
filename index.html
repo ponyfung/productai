@@ -3,7 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI 秒速盤點機 v2.3 (Debug)</title>
+    <title>AI Inventory Pro v4.8</title>
+    
+    <!-- Google Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    
+    <!-- Import Gemini SDK -->
     <script type="importmap">
       {
         "imports": {
@@ -11,233 +17,780 @@
         }
       }
     </script>
-    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+
     <style>
-        :root { --primary: #007aff; --bg: #f2f2f7; }
+        :root {
+            --primary: #2563eb;
+            --primary-light: #eff6ff;
+            --success: #10b981;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+            --border: #e2e8f0;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg); margin: 0; padding: 20px;
-            color: #1c1c1e; text-align: center;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 0;
+            color: var(--text-main);
+            min-height: 100vh;
         }
-        .container { max-width: 600px; margin: 0 auto; }
+
+        /* --- Header & Top Bar --- */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: var(--surface);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
         
-        .api-box {
-            background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        .brand-icon {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, var(--primary), #3b82f6);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
         }
+
+        .brand-text h1 {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -0.02em;
+        }
+        
+        .brand-text span {
+            font-size: 11px;
+            color: var(--text-sub);
+            font-weight: 500;
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 6px;
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            position: relative;
+            color: var(--text-sub);
+            transition: color 0.2s;
+            border-radius: 8px;
+        }
+        .icon-btn:hover { color: var(--text-main); background: var(--bg); }
+        .icon-btn i { font-size: 22px; }
+        
+        .status-badge {
+            position: absolute;
+            top: 8px; right: 6px;
+            width: 8px; height: 8px;
+            background: var(--danger);
+            border: 2px solid var(--surface);
+            border-radius: 50%;
+            transition: background 0.3s;
+        }
+        .status-badge.ready { background: var(--success); }
+
+        /* --- Main Container --- */
+        .container {
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 20px;
+            padding-bottom: 120px;
+        }
+
+        /* --- Hero / Actions --- */
+        .action-card {
+            background: linear-gradient(145deg, #ffffff, #f1f5f9);
+            border-radius: 20px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 24px;
+            border: 1px solid white;
+        }
+
+        .hero-title {
+            font-size: 15px;
+            color: var(--text-sub);
+            margin-bottom: 20px;
+        }
+
+        .btn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .main-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px 12px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .main-btn:active { transform: scale(0.96); background: var(--primary-light); border-color: var(--primary); }
+        
+        .icon-box {
+            width: 48px; height: 48px;
+            background: var(--primary-light);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+
+        .btn-label {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+        .btn-desc {
+            font-size: 11px;
+            color: var(--text-sub);
+        }
+
+        /* --- Session List --- */
+        #session-area { display: none; animation: slideUp 0.3s ease-out; }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 12px;
+            padding: 0 4px;
+        }
+        .list-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+        .list-count {
+            font-size: 13px;
+            color: var(--text-sub);
+            background: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .inventory-card {
+            background: var(--surface);
+            border-radius: 16px;
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+        }
+
+        .item-info { flex: 1; padding-right: 12px; }
+        .item-brand { font-size: 11px; color: var(--text-sub); text-transform: uppercase; font-weight: 600; margin-bottom: 2px; }
+        .item-name { font-size: 15px; font-weight: 600; color: var(--text-main); line-height: 1.4; margin-bottom: 2px; }
+        
+        .item-meta { 
+            text-align: right; 
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+            min-width: 60px;
+        }
+        
+        .item-qty { 
+            font-size: 16px; 
+            font-weight: 700; 
+            color: var(--primary);
+            background: var(--primary-light);
+            padding: 4px 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .qty-label { font-size: 10px; color: var(--text-sub); margin-top: 2px; }
+
+        /* --- Floating Bottom Bar for Actions --- */
+        .bottom-actions {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 600px;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            padding: 12px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            display: flex;
+            gap: 12px;
+            z-index: 900;
+            border: 1px solid rgba(255,255,255,0.5);
+            padding-bottom: max(12px, env(safe-area-inset-bottom));
+        }
+
+        .action-btn {
+            flex: 1;
+            border: none;
+            padding: 16px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: transform 0.1s;
+        }
+        .action-btn:active { transform: scale(0.98); }
+        
+        .btn-clear { background: #fee2e2; color: #b91c1c; }
+        .btn-export { background: var(--text-main); color: white; }
+
+        /* --- Modals --- */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; opacity: 1; }
+
+        .modal-content {
+            background: var(--surface);
+            width: 85%; max-width: 360px;
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: var(--shadow-lg);
+            transform: scale(0.95);
+            transition: transform 0.2s;
+        }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+
+        .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 12px; color: var(--text-main); }
+        .modal-text { font-size: 14px; color: var(--text-sub); margin-bottom: 24px; line-height: 1.5; }
+        
+        .input-group label { display: block; font-size: 13px; color: var(--text-sub); margin-bottom: 8px; }
         .api-input {
-            width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; 
-            box-sizing: border-box; margin-top: 5px; font-size: 14px;
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+            font-family: monospace;
         }
+        .api-input:focus { border-color: var(--primary); }
 
-        .action-area { display: grid; gap: 15px; }
-        .big-btn {
-            background: white; border: none; border-radius: 20px; padding: 30px 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1); cursor: pointer;
-            transition: transform 0.1s; display: flex; flex-direction: column; align-items: center;
-        }
-        .big-btn:active { transform: scale(0.98); }
-        .big-btn i { font-size: 40px; margin-bottom: 10px; color: var(--primary); }
-        .big-btn span { font-size: 18px; font-weight: bold; color: #333; }
-        .big-btn small { font-size: 12px; color: #888; margin-top: 5px; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+        .btn-text { background: none; border: none; color: var(--text-sub); font-weight: 600; cursor: pointer; padding: 12px 16px; border-radius: 10px;}
+        .btn-text:hover { background: var(--bg); }
+        
+        .btn-primary { background: var(--primary); color: white; border: none; border-radius: 12px; padding: 12px 24px; font-weight: 600; cursor: pointer; }
+        .btn-danger-solid { background: var(--danger); color: white; border: none; border-radius: 12px; padding: 12px 24px; font-weight: 600; cursor: pointer; }
 
-        #loading-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 999;
-            display: none; flex-direction: column; align-items: center; justify-content: center;
-            color: white; text-align: center;
+        /* Loading */
+        .loading-view {
+            text-align: center;
+            padding: 20px;
         }
         .spinner {
-            width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.3); 
-            border-top-color: #00ffcc; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;
+            width: 40px; height: 40px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        
-        #result-preview { margin-top: 20px; text-align: left; background: white; padding: 15px; border-radius: 12px; display: none; }
-        
-        /* 錯誤顯示區 */
-        #error-console {
-            background: #ffebeb; border: 1px solid red; color: red; 
-            padding: 10px; margin-top: 20px; border-radius: 8px; 
-            text-align: left; font-size: 12px; word-break: break-all; display: none;
-        }
+
     </style>
 </head>
 <body>
 
+    <!-- Top Navigation -->
+    <nav class="top-bar">
+        <div class="brand">
+            <div class="brand-icon"><i class="ri-ai-generate"></i></div>
+            <div class="brand-text">
+                <h1 data-i18n="app_title">AI 智能盤點</h1>
+                <span>v4.8</span>
+            </div>
+        </div>
+        <div class="nav-actions">
+            <button class="icon-btn" onclick="toggleLanguage()">
+                <i class="ri-global-line"></i>
+            </button>
+            <button class="icon-btn" onclick="openSettings()">
+                <i class="ri-settings-4-line"></i>
+                <div id="key-status" class="status-badge"></div>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
     <div class="container">
-        <h2 style="margin-top:0;">⚡ AI 秒速盤點 v2.3</h2>
         
-        <div class="api-box">
-            <label style="font-size:12px; font-weight:bold; color:#666;">Google Gemini API Key:</label>
-            <input type="password" id="api-key" class="api-input" placeholder="貼上 Key (AIza開頭)" oninput="saveKey()">
-            <div id="key-status" style="font-size:12px; color:red; margin-top:5px;">未輸入 API Key</div>
+        <!-- Hero Actions -->
+        <div class="action-card">
+            <div class="hero-title" data-i18n="hero_title">選擇輸入方式開始盤點</div>
+            <div class="btn-grid">
+                <button class="main-btn" onclick="triggerInput('camera')">
+                    <div class="icon-box"><i class="ri-camera-fill"></i></div>
+                    <div>
+                        <div class="btn-label" data-i18n="camera_btn">拍照輸入</div>
+                        <div class="btn-desc" data-i18n="camera_desc">拍攝單張照片</div>
+                    </div>
+                </button>
+                <button class="main-btn" onclick="triggerInput('upload')">
+                    <div class="icon-box" style="background:#ecfdf5; color:var(--success);"><i class="ri-gallery-upload-fill"></i></div>
+                    <div>
+                        <div class="btn-label" data-i18n="upload_btn">批量上傳</div>
+                        <div class="btn-desc" data-i18n="upload_desc">選取多張圖片</div>
+                    </div>
+                </button>
+            </div>
         </div>
 
-        <div class="action-area">
-            <button class="big-btn" onclick="triggerCamera()">
-                <i class="ri-camera-lens-fill"></i>
-                <span>📸 即影 -> 即出 Excel</span>
-                <small>自動分析及下載</small>
-            </button>
+        <!-- Hidden Inputs -->
+        <input type="file" id="file-camera" accept="image/*" capture="environment" style="display:none" onchange="handleFiles(this.files)">
+        <input type="file" id="file-upload" accept="image/*" multiple style="display:none" onchange="handleFiles(this.files)">
 
-            <button class="big-btn" onclick="document.getElementById('file-upload').click()">
-                <i class="ri-image-add-fill" style="color:#34c759;"></i>
-                <span>🖼️ 上傳相片</span>
-                <small>選擇相簿內的圖片</small>
-            </button>
-        </div>
-
-        <input type="file" id="file-camera" accept="image/*" capture="environment" style="display:none" onchange="handleProcess(this)">
-        <input type="file" id="file-upload" accept="image/*" style="display:none" onchange="handleProcess(this)">
-
-        <div id="error-console"></div>
-
-        <div id="result-preview">
-            <h3>✅ 已完成！</h3>
-            <p>Excel (CSV) 檔案已自動下載。</p>
-            <div id="data-dump" style="font-family:monospace; font-size:12px; color:#555; white-space: pre-wrap;"></div>
+        <!-- Session List Area -->
+        <div id="session-area">
+            <div class="list-header">
+                <span class="list-title" data-i18n="list_title">盤點清單</span>
+                <span class="list-count"><span id="count-prefix">共</span> <span id="item-count">0</span> <span id="count-suffix">項</span></span>
+            </div>
+            
+            <div id="inventory-list-container">
+                <!-- Cards injected here -->
+            </div>
         </div>
     </div>
 
-    <div id="loading-overlay">
-        <div class="spinner"></div>
-        <div id="status-text">正在分析圖片...</div>
-        <div id="sub-status">請稍候...</div>
+    <!-- Floating Bottom Actions (Hidden by default) -->
+    <div id="bottom-bar" class="bottom-actions" style="display: none;">
+        <button class="action-btn btn-clear" onclick="openClearModal()">
+            <i class="ri-delete-bin-line"></i> <span data-i18n="clear_btn">清除</span>
+        </button>
+        <button class="action-btn btn-export" onclick="exportExcel()">
+            <i class="ri-file-excel-2-fill"></i> <span data-i18n="export_btn">匯出 Excel</span>
+        </button>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-title" data-i18n="settings_title">設定 API Key</div>
+            <div class="input-group">
+                <label data-i18n="key_label">Google Gemini API Key</label>
+                <input type="password" id="api-key-input" class="api-input" placeholder="AIza...">
+            </div>
+            <div class="modal-actions" style="margin-top:20px;">
+                <button class="btn-text" onclick="closeSettings()" data-i18n="cancel_btn">取消</button>
+                <button class="btn-primary" onclick="saveSettings()" data-i18n="save_btn">儲存設定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clear Confirmation Modal -->
+    <div id="clear-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-title" data-i18n="clear_modal_title">清除所有資料？</div>
+            <div class="modal-text" data-i18n="clear_modal_text">此動作將會刪除目前清單中的所有項目且無法復原。</div>
+            <div class="modal-actions">
+                <button class="btn-text" onclick="closeClearModal()" data-i18n="cancel_btn">取消</button>
+                <button class="btn-danger-solid" onclick="confirmClearAction()" data-i18n="confirm_clear_btn">確認清除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="modal-overlay" style="z-index: 3000;">
+        <div class="modal-content" style="background:transparent; box-shadow:none; color:white;">
+            <div class="loading-view">
+                <div class="spinner"></div>
+                <h3 id="loading-text" style="font-size:18px; margin:0 0 8px 0;">AI Analyzing...</h3>
+                <p id="loading-sub" style="opacity:0.8; font-size:14px; margin:0;">Identifying...</p>
+            </div>
+        </div>
     </div>
 
     <script type="module">
         import { GoogleGenerativeAI } from "@google/generative-ai";
 
-        window.saveKey = function() {
-            const key = document.getElementById('api-key').value;
-            localStorage.setItem('gemini_key', key);
-            checkKey();
-        }
-
-        function checkKey() {
-            const key = document.getElementById('api-key').value;
-            const status = document.getElementById('key-status');
-            if(key.length > 10) {
-                status.innerText = "✅ API Key 已準備好";
-                status.style.color = "green";
-                return true;
-            } else {
-                status.innerText = "❌ 請輸入 API Key 才能使用";
-                status.style.color = "red";
-                return false;
+        // --- Localization Data ---
+        const translations = {
+            "zh-TW": {
+                app_title: "AI 智能盤點",
+                hero_title: "選擇輸入方式開始盤點",
+                camera_btn: "拍照輸入",
+                camera_desc: "拍攝單張照片",
+                upload_btn: "批量上傳",
+                upload_desc: "選取多張圖片",
+                list_title: "盤點清單",
+                clear_btn: "清除",
+                export_btn: "匯出 Excel",
+                settings_title: "設定 API Key",
+                key_label: "Google Gemini API Key",
+                cancel_btn: "取消",
+                save_btn: "儲存設定",
+                clear_modal_title: "清除所有資料？",
+                clear_modal_text: "此動作將會刪除目前清單中的所有項目且無法復原。",
+                confirm_clear_btn: "確認清除",
+                count_prefix: "共",
+                count_suffix: "項",
+                qty_label: "數量",
+                loading_analyzing: "正在分析圖片",
+                loading_identifying: "識別產品與數量",
+                unknown_brand: "未知品牌",
+                unnamed_product: "未命名商品",
+                // Removed embedded BOM from here, will add dynamically
+                csv_header: "品牌 (Brand),產品名稱 (Name),數量 (Qty)\n"
+            },
+            "en": {
+                app_title: "AI Inventory",
+                hero_title: "Select Input Method",
+                camera_btn: "Camera",
+                camera_desc: "Take a photo",
+                upload_btn: "Batch Upload",
+                upload_desc: "Select multiple photos",
+                list_title: "Inventory List",
+                clear_btn: "Clear",
+                export_btn: "Export Excel",
+                settings_title: "API Key Settings",
+                key_label: "Google Gemini API Key",
+                cancel_btn: "Cancel",
+                save_btn: "Save",
+                clear_modal_title: "Clear All Data?",
+                clear_modal_text: "This will delete all items in the current list and cannot be undone.",
+                confirm_clear_btn: "Confirm Clear",
+                count_prefix: "Total",
+                count_suffix: "items",
+                qty_label: "Qty",
+                loading_analyzing: "Analyzing Image",
+                loading_identifying: "Identifying products and quantity",
+                unknown_brand: "UNKNOWN",
+                unnamed_product: "Unnamed Product",
+                // Removed embedded BOM from here, will add dynamically
+                csv_header: "Brand,Product Name,Quantity\n"
             }
-        }
-
-        const savedKey = localStorage.getItem('gemini_key');
-        if(savedKey) {
-            document.getElementById('api-key').value = savedKey;
-            checkKey();
-        }
-
-        window.triggerCamera = function() {
-            if(!checkKey()) { alert("請先輸入 API Key！"); return; }
-            document.getElementById('file-camera').click();
-        }
-
-        window.handleProcess = async function(input) {
-            const file = input.files[0];
-            if (!file) return;
-
-            const overlay = document.getElementById('loading-overlay');
-            const errorConsole = document.getElementById('error-console');
-            errorConsole.style.display = 'none'; // 重置錯誤區
-            
-            const status = document.getElementById('status-text');
-            const sub = document.getElementById('sub-status');
-            overlay.style.display = 'flex';
-            
-            try {
-                const base64Data = await readFileAsBase64(file);
-                const apiKey = document.getElementById('api-key').value;
-                const genAI = new GoogleGenerativeAI(apiKey);
-                
-                // 使用最標準的 gemini-1.5-flash
-                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
-
-                status.innerText = "🤖 AI 思考中...";
-                sub.innerText = "正在辨識品牌與數量...";
-
-                const prompt = `
-                    請分析圖片中的商品。請非常精準地辨識「品牌 (Brand)」、「產品全名 (Full Name)」、「具體型號/口味/容量 (Model/Flavor)」以及「數量 (Quantity)」。
-                    
-                    輸出格式必須是純 JSON Array，不要有 Markdown，格式如下：
-                    [
-                      {"brand": "維他", "name": "檸檬茶", "spec": "250ml", "qty": 3},
-                      {"brand": "Coca-Cola", "name": "Zero", "spec": "330ml", "qty": 1}
-                    ]
-                `;
-
-                const result = await model.generateContent([
-                    prompt,
-                    { inlineData: { data: base64Data, mimeType: "image/jpeg" } }
-                ]);
-                
-                const responseText = result.response.text();
-                // 清理可能出現的 json 標記
-                const jsonText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-                const data = JSON.parse(jsonText);
-
-                status.innerText = "📄 正在生成 Excel...";
-                downloadCSV(data);
-
-                overlay.style.display = 'none';
-                document.getElementById('result-preview').style.display = 'block';
-                document.getElementById('data-dump').innerText = JSON.stringify(data, null, 2);
-                alert("成功！Excel 檔案已下載。");
-
-            } catch (error) {
-                console.error(error);
-                overlay.style.display = 'none';
-                
-                // === 將真實錯誤顯示在畫面上 ===
-                let errorMsg = error.toString();
-                errorConsole.style.display = 'block';
-                errorConsole.innerText = "⚠️ 發生錯誤：\n" + errorMsg;
-
-                if (errorMsg.includes("400") || errorMsg.includes("User location")) {
-                    alert("【地點錯誤】\nGoogle 發現你在香港。\n請開啟 VPN (日本/台灣) 再試一次！");
-                } else if (errorMsg.includes("404") || errorMsg.includes("Not Found")) {
-                    alert("【模型錯誤】\n找不到 AI 模型，請截圖給開發者檢查。");
-                } else {
-                    alert("【未知錯誤】\n請看下方紅色框框的詳細訊息。");
-                }
-            }
-            
-            input.value = '';
         };
 
-        function readFileAsBase64(file) {
-            return new Promise((resolve, reject) => {
+        // --- State ---
+        let sessionData = [];
+        let genAI = null;
+        let currentLang = localStorage.getItem('app_lang') || 'zh-TW';
+
+        // --- UI Modal Functions ---
+        window.toggleLanguage = () => {
+            currentLang = currentLang === 'zh-TW' ? 'en' : 'zh-TW';
+            localStorage.setItem('app_lang', currentLang);
+            applyLanguage();
+            // Re-render list to update labels (like "Qty")
+            renderList(); 
+        };
+
+        function applyLanguage() {
+            const t = translations[currentLang];
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (t[key]) el.innerText = t[key];
+            });
+            
+            // Special handling for count text structure
+            document.getElementById('count-prefix').innerText = t.count_prefix;
+            document.getElementById('count-suffix').innerText = t.count_suffix;
+            
+            // Placeholder update
+            const keyInput = document.getElementById('api-key-input');
+            if(keyInput) keyInput.placeholder = currentLang === 'en' ? "Paste key starting with AIza..." : "貼上 AIza 開頭的金鑰";
+        }
+
+        window.openSettings = () => {
+            const modal = document.getElementById('settings-modal');
+            const input = document.getElementById('api-key-input');
+            input.value = localStorage.getItem('gemini_key_v4') || '';
+            modal.classList.add('active');
+        };
+
+        window.closeSettings = () => {
+            document.getElementById('settings-modal').classList.remove('active');
+        };
+
+        window.openClearModal = () => {
+            document.getElementById('clear-modal').classList.add('active');
+        };
+
+        window.closeClearModal = () => {
+            document.getElementById('clear-modal').classList.remove('active');
+        };
+
+        // --- Logic Functions ---
+
+        window.saveSettings = () => {
+            const key = document.getElementById('api-key-input').value.trim();
+            if (key.startsWith('AIza')) {
+                localStorage.setItem('gemini_key_v4', key);
+                checkKeyStatus();
+                closeSettings();
+            } else {
+                alert(currentLang === 'en' ? 'Invalid API Key format. Must start with AIza.' : 'API Key 格式似乎不正確，請確認是否以 AIza 開頭');
+            }
+        };
+
+        window.triggerInput = (type) => {
+            const key = localStorage.getItem('gemini_key_v4');
+            if (!key) {
+                openSettings();
+                return;
+            }
+            const id = type === 'camera' ? 'file-camera' : 'file-upload';
+            document.getElementById(id).click();
+        };
+
+        function checkKeyStatus() {
+            const key = localStorage.getItem('gemini_key_v4');
+            const badge = document.getElementById('key-status');
+            if (key && key.startsWith('AIza')) {
+                badge.classList.add('ready');
+            } else {
+                badge.classList.remove('ready');
+            }
+        }
+
+        // Run on load
+        applyLanguage();
+        checkKeyStatus();
+
+        window.handleFiles = async function(files) {
+            if (!files || files.length === 0) return;
+
+            const apiKey = localStorage.getItem('gemini_key_v4');
+            const overlay = document.getElementById('loading-overlay');
+            const statusText = document.getElementById('loading-text');
+            const subText = document.getElementById('loading-sub');
+            const t = translations[currentLang];
+
+            overlay.classList.add('active');
+            subText.innerText = t.loading_identifying;
+            
+            try {
+                genAI = new GoogleGenerativeAI(apiKey);
+                const model = genAI.getGenerativeModel({ 
+                    model: "gemini-2.5-flash-preview-09-2025",
+                    generationConfig: { responseMimeType: "application/json" }
+                });
+
+                for (let i = 0; i < files.length; i++) {
+                    statusText.innerText = `${t.loading_analyzing} (${i + 1}/${files.length})`;
+                    const file = files[i];
+                    
+                    try {
+                        const base64Data = await fileToGenerativePart(file);
+                        
+                        // Dynamic Prompt based on Language
+                        const langInstruction = currentLang === 'zh-TW' 
+                            ? "Traditional Chinese preferred for Brand and Name." 
+                            : "English preferred for Brand and Name.";
+
+                        const prompt = `
+                            Analyze this inventory image. Identify all distinct sellable products visible.
+                            
+                            **INSTRUCTIONS**:
+                            - Identify **Brand** and **Product Name**.
+                            - Language Preference: ${langInstruction}
+                            - If the product has a specific size, flavor, or variant visible on the label, **INCLUDE IT IN THE NAME**.
+                            - Do NOT create separate fields for volume or packaging type.
+                            - Count the quantity visible.
+                            
+                            Return a JSON Array of objects:
+                            [{
+                                "brand": "Brand Name",
+                                "name": "Product Name (Include spec/variant/size here if visible)",
+                                "qty": Number
+                            }]
+                        `;
+
+                        const result = await model.generateContent([prompt, base64Data]);
+                        const response = await result.response;
+                        const jsonText = response.text();
+                        const items = JSON.parse(jsonText);
+
+                        // Normalize
+                        const newItems = Array.isArray(items) ? items : [items];
+                        sessionData = [...sessionData, ...newItems];
+
+                    } catch (err) {
+                        console.error("Error processing file:", err);
+                    }
+                }
+
+                renderList();
+
+            } catch (globalErr) {
+                alert("Error: " + globalErr.message);
+            } finally {
+                overlay.classList.remove('active');
+                // Reset inputs
+                document.getElementById('file-camera').value = '';
+                document.getElementById('file-upload').value = '';
+            }
+        };
+
+        function renderList() {
+            const container = document.getElementById('inventory-list-container');
+            const countEl = document.getElementById('item-count');
+            const area = document.getElementById('session-area');
+            const bottomBar = document.getElementById('bottom-bar');
+            const t = translations[currentLang];
+
+            if (sessionData.length === 0) {
+                area.style.display = 'none';
+                bottomBar.style.display = 'none';
+                return;
+            }
+
+            area.style.display = 'block';
+            bottomBar.style.display = 'flex';
+            
+            // Calculate Total Quantity (Sum of all item quantities)
+            const totalQty = sessionData.reduce((sum, item) => {
+                const q = parseInt(item.qty);
+                return sum + (isNaN(q) ? 1 : q);
+            }, 0);
+
+            // Build HTML
+            container.innerHTML = sessionData.map((item, index) => {
+                return `
+                <div class="inventory-card">
+                    <div class="item-row">
+                        <div class="item-info">
+                            <div class="item-brand">${item.brand || t.unknown_brand}</div>
+                            <div class="item-name">${item.name || t.unnamed_product}</div>
+                        </div>
+                        <div class="item-meta">
+                            <div class="item-qty">x${item.qty || 1}</div>
+                            <div class="qty-label">${t.qty_label}</div>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+
+            // Update the count display with the calculated Total Quantity
+            countEl.innerText = totalQty;
+        }
+
+        window.confirmClearAction = () => {
+            sessionData = [];
+            renderList();
+            closeClearModal();
+        };
+
+        window.exportExcel = () => {
+            if (sessionData.length === 0) return;
+            
+            const t = translations[currentLang];
+
+            // BOM for Excel compatibility - MUST be the very first thing
+            let csvContent = "\uFEFF" + t.csv_header;
+            
+            sessionData.forEach(item => {
+                const brand = (item.brand || "").replace(/,/g, " ");
+                const name = (item.name || "").replace(/,/g, " ");
+                const qty = item.qty || 1;
+                csvContent += `${brand},${name},${qty}\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            
+            const date = new Date();
+            const timeStr = `${date.getFullYear()}${String(date.getMonth()+1).padStart(2,'0')}${String(date.getDate()).padStart(2,'0')}_${String(date.getHours()).padStart(2,'0')}${String(date.getMinutes()).padStart(2,'0')}`;
+            
+            link.setAttribute("href", url);
+            link.setAttribute("download", `Inventory_${timeStr}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        function fileToGenerativePart(file) {
+            return new Promise((resolve) => {
                 const reader = new FileReader();
-                reader.onload = () => resolve(reader.result.split(',')[1]);
-                reader.onerror = reject;
+                reader.onloadend = () => resolve({
+                    inlineData: {
+                        data: reader.result.split(',')[1],
+                        mimeType: file.type
+                    }
+                });
                 reader.readAsDataURL(file);
             });
         }
 
-        function downloadCSV(data) {
-            let csv = "\uFEFF品牌,產品名稱,規格/型號,數量\n";
-            data.forEach(item => {
-                csv += `"${item.brand}","${item.name}","${item.spec}",${item.qty}\n`;
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.setAttribute("href", url);
-            
-            const timeStr = new Date().toISOString().slice(0,19).replace(/:/g,"-");
-            link.setAttribute("download", `盤點結果_${timeStr}.csv`);
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
     </script>
 </body>
 </html>
